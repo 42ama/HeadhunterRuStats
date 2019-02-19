@@ -4,12 +4,14 @@ import requests
 
 #Для отрисовки графиков
 import matplotlib.pyplot as plt
+import numpy as np
 
 #Для хранения файлов
 import json
 
 #Просто полезные вещи используемые в паре мест
 import os#для сохранения графиков
+import glob#получаем список файлов в папке
 import itertools#для составления ссылок из списка списков
 import datetime#для составления названия json файла
 import progressbar#красивое отображение процесса во время сбора инфы
@@ -53,13 +55,12 @@ class HHStats:
 		self.dataDictionary = {}
 		self.urlList=[]
 		self.namesList=[]
-
 		self.now = datetime.datetime.now()
 		self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:66.0) Gecko/20100101 Firefox/66.0'}
 
 		url='https://samara.hh.ru/search/vacancy?clusters=true&enable_snippets=true&'
 		#["text=python&","text=c%23&","text=unity&","text=data+science&","text=javascript&"]
-		mainList = [[],
+		self.mainList = [[],
 					["","area=2&","&area=78&"],					
 					["","experience=noExperience&from=cluster_experience&","experience=between1And3&from=cluster_experience&"]
 					]
@@ -69,9 +70,9 @@ class HHStats:
 
 		compatibleList[0] = incomedList
 		for x in compatibleList[0]:
-			mainList[0].append('text='+urllib.parse.quote_plus(x)+'&')
+			self.mainList[0].append('text='+urllib.parse.quote_plus(x)+'&')
 
-		mainListProducts = list(itertools.product(*mainList))
+		mainListProducts = list(itertools.product(*self.mainList))
 		compatibleListProducts = list(itertools.product(*compatibleList))
 
 		for x in mainListProducts:
@@ -114,12 +115,12 @@ class HHStats:
 			c+=1;
 
 	def saveJson(self):
-		fileName = self.now.strftime("%Y_%m_%d")+'.json'#___%H_%M добавить в название для часов и минут
+		fileName = 'data/'+self.now.strftime("%Y_%m_%d")+'.json'#___%H_%M добавить в название для часов и минут
 		with open(fileName, 'w') as fp:
 			json.dump(self.dataDictionary, fp)
 
 	def loadJson(self):
-		fileName = self.now.strftime("%Y_%m_%d")+'.json'#___%H_%M добавить в название для часов и минут
+		fileName = 'data/'+self.now.strftime("%Y_%m_%d")+'.json'#___%H_%M добавить в название для часов и минут
 		with open(fileName, 'r') as fp:
 			self.dataDictionary = json.load(fp)
 
@@ -140,26 +141,50 @@ class HHStats:
 	def drawingPlot(self):
 		#https://nbviewer.jupyter.org/github/whitehorn/Scientific_graphics_in_python/blob/master/P1%20Chapter%201%20Pyplot.ipynb
 		fig = plt.figure()   # Создание объекта Figure
-		print(fig.axes)   # Список текущих областей рисования пуст
-		print(type(fig))   # тип объекта Figure
-		plt.scatter(1.0, 1.0)   # scatter - метод для нанесения маркера в точке (1.0, 1.0)
+		#print(fig.axes)   # Список текущих областей рисования пуст
+		#print(type(fig))   # тип объекта Figure
+		#plt.scatter(1.0, 1.0)   # scatter - метод для нанесения маркера в точке (1.0, 1.0)
+		y=[]
+		markers=[]
+		for c in range(len(self.namesList)):
+			if(c%(len(self.mainList)*len(self.mainList[1]))==0):#длина 3
+				y.append(self.dataDictionary[self.namesList[c]])#для отрисовки на графике 1
+				markers.append(self.namesList[c].split()[:-1])#помимо одиночных листов появляется ["Data", 'science'] не будет работать для начала уберём сплит
+		y=np.array(y)
+		x=np.full(len(y),10)
+		#cc = plt.plot(x,y,color='grey', linewidth=2.5, linestyle='--')
+		plt.grid(b=True,alpha=0.3)
+		plt.scatter(x, y, marker='.', s=40, color='red')
+		plt.title('Тренды по языкам в России за последние 10 дней\n(абсолютная статистика)')
+		plt.xlabel('Дни')
+		plt.ylabel('Кол-во вакансий')
+		#plt.plot(x,y)
 		
 		# После нанесения графического элемента в виде маркера
 		# список текущих областей состоит из одной области
-		print (fig.axes)
-		
+		#print (fig.axes)
 		# смотри преамбулу
 		#save(name='pic_1_4_1', fmt='pdf')
 		#save(name='pic_1_4_1', fmt='png')
-		plt.savefig('{}.{}'.format('pic_1_4_1', 'png'))
+		#plt.savefig('{}.{}'.format('pic_1_4_1', 'png'))
 		plt.show()
-
+	def getNlast(self, n=10):
+		list_of_files = glob.glob('data/*.json') # * means all if need specific format then *.csv
+		fromLastToFirst = []
+		if(n>len(list_of_files)):
+			n=len(list_of_files)
+		for x in range(n):
+			latest_file = max(list_of_files, key=os.path.getctime)
+			fromLastToFirst.append(latest_file)
+			list_of_files.remove(latest_file)
+		return fromLastToFirst
 
 print("loaded")
 if __name__ == '__main__':
 	print("also loaded as main")
 	Sample=HHStats(["Python","C#","Unity","Data science","JavaScript"])
-	Sample.collectData()
-	Sample.saveJson()
+	#Sample.collectData()
+	#Sample.saveJson()
 	#Sample.loadJson()
 	#Sample.drawingPlot()
+	print(Sample.getNlast())
