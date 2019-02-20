@@ -4,6 +4,7 @@ import requests
 
 #Для отрисовки графиков
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 
 #Для хранения файлов
@@ -61,6 +62,13 @@ class HHStats:
 		url='https://samara.hh.ru/search/vacancy?clusters=true&enable_snippets=true&'
 		#["text=python&","text=c%23&","text=unity&","text=data+science&","text=javascript&"]
 		self.colorList=['blue','green','red','cyan','black','yellow','gray']
+		tagList=[['Everyweek','Everymonth'],
+							['Russia','Samara'],
+							['Absolute','Relate']]
+		titleList=[['Еженедельные','Ежемесячные'],
+						['России','Самаре'],
+						['абсолютная','относительная']]
+		#{Ежемесячные} тренды по языкам в {России}\n({абсолютная} статистика)
 		self.mainList = [[],
 					["","area=2&","&area=78&"],					
 					["","experience=noExperience&from=cluster_experience&","experience=between1And3&from=cluster_experience&"]
@@ -75,6 +83,8 @@ class HHStats:
 
 		mainListProducts = list(itertools.product(*self.mainList))
 		compatibleListProducts = list(itertools.product(*compatibleList))
+		self.tagListProducts=list(itertools.product(*tagList))
+		self.titleListProducts=list(itertools.product(*titleList))
 
 		for x in mainListProducts:
 			newurl = url
@@ -120,13 +130,13 @@ class HHStats:
 			c+=1;
 
 	def saveJson(self):
-		fileName = 'data/'+self.now.strftime("%Y_%m_%d")+'.json'#___%H_%M добавить в название для часов и минут
+		fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))#___%H_%M добавить в название для часов и минут
 		with open(fileName, 'w') as fp:
 			json.dump(self.dataDictionary, fp)
 
 	def loadJson(self,fileName=None):
 		if(fileName==None):
-			fileName = 'data/'+self.now.strftime("%Y_%m_%d")+'.json'#___%H_%M добавить в название для часов и минут
+			fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))#___%H_%M добавить в название для часов и минут
 		with open(fileName, 'r') as fp:
 			self.dataDictionary = json.load(fp)
 
@@ -142,21 +152,9 @@ class HHStats:
 		os.chdir(iPath)
 		plt.savefig('{}.{}'.format(name, fmt), fmt='png')
 		os.chdir(pwd)
-		#plt.close()
-
-	def drawingPlot(self):
-		#https://nbviewer.jupyter.org/github/whitehorn/Scientific_graphics_in_python/blob/master/P1%20Chapter%201%20Pyplot.ipynb
-		fig = plt.figure()   # Создание объекта Figure
-		#print(fig.axes)   # Список текущих областей рисования пуст
-		#print(type(fig))   # тип объекта Figure
-		#plt.scatter(1.0, 1.0)   # scatter - метод для нанесения маркера в точке (1.0, 1.0)
-		c=0
-		plt.title('Тренды по языкам в России за последние 10 дней\n(абсолютная статистика)')
-		plt.xlabel('Дни')
-		plt.ylabel('Кол-во вакансий')
-		plt.grid(b=True,alpha=0.3)
+		#plt.close()  'plots/'
+	def AbsPlot(self,fig):
 		x=np.array(range(0,-len(self.dataList),-1))
-		#ax = fig.add_subplot(111)
 		c=0
 		for oneList in self.dataList:
 			y=np.array(oneList)
@@ -165,15 +163,30 @@ class HHStats:
 			#plt.text(-0.5, oneList[0]+600, self.incomedList[c], fontsize=12, bbox=dict(edgecolor='w', color='w'))
 			#ax.plot(x+1, y, color=self.colorList[c], linewidth=1, label=self.incomedList[c])
 			c+=1
-		#ax.grid(True)
+	def RelPlot(self,fig):
+		x=np.array(range(0,-len(self.dataList),-1))
+		c=0
+		#for oneList in self.dataList:
+		#	for x in oneList[1:]:
+		#		x=
+		#	y=np.array(oneList)
+		pass
+	def drawPlot(self):
+		#for x in range(len(self.tagListProducts)):
+		#	fileName=
+		self.getDataFromJson(self.getNlast())
+		for x in self.dataList:
+			print(x)
+		fig = plt.figure()   # Создание объекта Figure
+		fig.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+		plt.title('Тренды по языкам в России за последние 10 дней\n(абсолютная статистика)')
+		plt.xlabel('Дни')
+		plt.ylabel('Кол-во вакансий')
+		plt.grid(b=True,alpha=0.3)
+		self.AbsPlot(fig)
 		plt.legend(loc='upper right', bbox_to_anchor=(1.12, 0.95))
+		#plt.savefig('plots/{}_abs.png'.format(self.now.strftime("%Y_%m_%d")), fmt='png')#.format(name, fmt)
 		plt.show()
-		#cc = plt.plot(x,y,color='grey', linewidth=2.5, linestyle='--')
-		#plt.scatter(x, y, marker='.', s=40, color='red')
-
-		#save(name='pic_1_4_1', fmt='pdf')
-		#save(name='pic_1_4_1', fmt='png')
-		#plt.savefig('{}.{}'.format('pic_1_4_1', 'png'))
 		
 
 	def getNlast(self, n=10):
@@ -209,5 +222,4 @@ if __name__ == '__main__':
 	#Sample.collectData()
 	#Sample.saveJson()
 	#Sample.loadJson()
-	Sample.getDataFromJson(Sample.getNlast())
-	Sample.drawingPlot()
+	Sample.drawPlot()
