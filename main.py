@@ -51,25 +51,26 @@ Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:66.0) Gecko/20100101 Firefox/66.0
 '''
 
 class HHStats:
-	def __init__(self, incomedList):
-
+	def __init__(self, incomedList, test=False):
+		self.test=test
 		self.dataDictionary = {}
 		self.urlList=[]
 		self.namesList=[]
+		self.dataList_month=[]
 		self.now = datetime.datetime.now()
 		self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:66.0) Gecko/20100101 Firefox/66.0'}
 		self.incomedList=incomedList
 		url='https://samara.hh.ru/search/vacancy?clusters=true&enable_snippets=true&'
 		#["text=python&","text=c%23&","text=unity&","text=data+science&","text=javascript&"]
 		self.colorList=['blue','green','red','cyan','black','yellow','gray']
-		tagList=[['Week','Month'],
+		tagList=[['Week','Month','Year'],
 							['Russia','Samara'],
 							['Absolute','Relate']]
-		titleList=[['Еженедельные','Ежемесячные'],
+		titleList=[['Ежедневные','Ежедневные','Ежемесячные'],
 						['России','Самаре'],
 						['абсолютная','относительная']]
 		#{Ежемесячные} тренды по языкам в {России}\n({абсолютная} статистика)
-		self.mainList = [[],
+		mainList = [[],
 					["","area=2&","&area=78&"],					
 					["","experience=noExperience&from=cluster_experience&","experience=between1And3&from=cluster_experience&"]
 					]
@@ -79,9 +80,9 @@ class HHStats:
 
 		compatibleList[0] = self.incomedList
 		for x in compatibleList[0]:
-			self.mainList[0].append('text='+urllib.parse.quote_plus(x)+'&')
+			mainList[0].append('text='+urllib.parse.quote_plus(x)+'&')
 
-		mainListProducts = list(itertools.product(*self.mainList))
+		mainListProducts = list(itertools.product(*mainList))
 		compatibleListProducts = list(itertools.product(*compatibleList))
 		self.tagListProducts=list(itertools.product(*tagList))
 		self.titleListProducts=list(itertools.product(*titleList))
@@ -98,16 +99,16 @@ class HHStats:
 		self.chooseDataList=[]
 		langAllAny_exp = []
 		langSamaraAny_exp = []
-		for c in range(len(self.namesList)):
-			if(c%(len(self.mainList)*len(self.mainList[1]))==0):
-				langAllAny_exp.append(c)
-		for c in range(len(self.namesList)):
-			if(c%(len(self.mainList)*len(self.mainList[1]))==6):
-				langSamaraAny_exp.append(c)
+		def getAllNLine(out,n=0):
+			for c in range(len(self.namesList)):
+				if(c%(len(mainList)*len(mainList[1]))==n):
+					out.append(c)
+		getAllNLine(langAllAny_exp,n=0)
+		getAllNLine(langSamaraAny_exp,n=6)
 		self.chooseDataList.append(langAllAny_exp)
 		self.chooseDataList.append(langSamaraAny_exp)
 		#self.urlList=["https://samara.hh.ru/search/vacancy?text=unity&only_with_salary=false&clusters=true&area=78&enable_snippets=true&","https://samara.hh.ru/search/vacancy?clusters=true&enable_snippets=true&text=C%23&experience=noExperience&from=cluster_experience"]
-		
+	
 
 	def collectAndSaveData(self):
 		c=0;
@@ -134,29 +135,63 @@ class HHStats:
 			else:
 				self.dataDictionary[self.namesList[c]]=None
 			c+=1;
-		fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))#___%H_%M добавить в название для часов и минут
-		with open(fileName, 'w') as fp:
-			json.dump(self.dataDictionary, fp)
+		self.saveJson()
+	
 
-	def loadJson(self,fileName=None):
-		if(fileName==None):
-			fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))#___%H_%M добавить в название для часов и минут
-		with open(fileName, 'r') as fp:
-			self.dataDictionary = json.load(fp)
 
-	def petrifyToTxt(self):
-		with open("out.txt", "w", encoding='utf-8') as f:
-			f.write(soup.prettify())
+	def drawPlot(self):
+		if(self.now.weekday()==0 or self.now.day==1 or self.test==True):
+			if(self.now.month != 1):
+				dateObj=datetime.datetime(self.now.year,self.now.month,self.now.day)#MONTH - 1 !!!!!!!!!!!!!
+			else:
+				dateObj=datetime.datetime(self.now.year-1,1,self.now.day)		
+			for x in range(len(self.tagListProducts)):
+				fileName = 'plots/{0}_{1}{2}{3}.png'.format(self.now.strftime("%Y_%m_%d"),
+														self.tagListProducts[x][0],
+														self.tagListProducts[x][1],
+														self.tagListProducts[x][2])
+				#{Ежемесячные} тренды по языкам в {России}\n({абсолютная} статистика)
+				title = '{0} тренды по языкам в {1}\n({2} статистика)'.format(
+														self.titleListProducts[x][0],
+														self.titleListProducts[x][1],
+														self.titleListProducts[x][2])
+				if('Week' in self.tagListProducts[x][0]):
+					if(self.now.weekday()==0 or self.test==True):
+						n=10
+						name='*'
+					else:
+						continue
+				elif('Month' in self.tagListProducts[x][0]):	
+					if(self.now.day == 1 or self.test==True):
+						n=31
+						name=dateObj.strftime("%Y_%m_*")
+						self.PrepareMonthMiddle(dateObj)
+					else:
+						continue
+				else:#Year
+					continue
+				if('Russia' in self.tagListProducts[x][1]):
+					dataList_name='Russia'
+				else:
+					dataList_name='Samara'
+				fig = plt.figure()   # Создание объекта Figure
+				fig.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+				plt.title(title)
+				plt.xlabel('Дни')
+				plt.ylabel('Кол-во вакансий')
+				plt.grid(b=True,alpha=0.3)
+				self.getDataFromJson(self.getNlast(name=name,n=n),dataList_name=dataList_name)
+				if('Absolute' in self.tagListProducts[x][2]):
+					self.AbsPlot(fig)
+				else:
+					self.RelPlot(fig)
+				plt.legend(loc='lower left', bbox_to_anchor=(1, 1))#, bbox_to_anchor=(1.12, 0.95))#loc='upper right', bbox_to_anchor=(1.12, 0.95))
+				plt.savefig(fileName, fmt='png')#'plots/{}_abs.png'.format(self.now.strftime("%Y_%m_%d")), fmt='png')#.format(name, fmt)
+				#plt.show()
+		else:
+			print("Sorry, today no plots")
 
-	def save(name='', fmt='png'):
-		pwd = os.getcwd()
-		iPath = '{}'.format(fmt)
-		if not os.path.exists(iPath):
-			os.mkdir(iPath)
-		os.chdir(iPath)
-		plt.savefig('{}.{}'.format(name, fmt), fmt='png')
-		os.chdir(pwd)
-		#plt.close()  'plots/'
+
 	def AbsPlot(self,fig):
 		#x=np.array(range(0,-len(self.dataList),-1))
 		c=0
@@ -179,42 +214,26 @@ class HHStats:
 			plt.plot(x,y,color=self.colorList[c], linewidth=1, linestyle='--', label=self.incomedList[c])
 			plt.scatter(x, y, marker='.', s=20, color=self.colorList[c])
 			c+=1
-	def drawPlot(self):
-		for x in range(len(self.tagListProducts)):
-			fileName = 'plots/{0}_{1}{2}{3}.png'.format(self.now.strftime("%Y_%m_%d"),
-													self.tagListProducts[x][0],
-													self.tagListProducts[x][1],
-													self.tagListProducts[x][2])
-			#{Ежемесячные} тренды по языкам в {России}\n({абсолютная} статистика)
-			title = '{0} тренды по языкам в {1}\n({2} статистика)'.format(
-													self.titleListProducts[x][0],
-													self.titleListProducts[x][1],
-													self.titleListProducts[x][2])
-			if('Week' in self.tagListProducts[x][0]):
-				pass
-			else:
-				continue
-			if('Russia' in self.tagListProducts[x][1]):
-				dataList_num=0
-			else:
-				dataList_num=1
-			fig = plt.figure()   # Создание объекта Figure
-			fig.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
-			plt.title(title)
-			plt.xlabel('Дни')
-			plt.ylabel('Кол-во вакансий')
-			plt.grid(b=True,alpha=0.3)
-			self.getDataFromJson(self.getNlast(),dataList_num=dataList_num)
-			if('Absolute' in self.tagListProducts[x][2]):
-				self.AbsPlot(fig)
-			else:
-				self.RelPlot(fig)
-			plt.legend(loc='lower left')#, bbox_to_anchor=(1.12, 0.95))#loc='upper right', bbox_to_anchor=(1.12, 0.95))
-			plt.savefig(fileName, fmt='png')#'plots/{}_abs.png'.format(self.now.strftime("%Y_%m_%d")), fmt='png')#.format(name, fmt)
-			#plt.show()
 
-	def getNlast(self, n=10):
-		list_of_files = glob.glob('data/*.json') # * means all if need specific format then *.csv
+
+	def PrepareMonthMiddle(self,dateObj):
+		#self.dataList_month
+		for x in ['Russia','Samara']:
+			self.getDataFromJson(self.getNlast(name=dateObj.strftime("%Y_%m_*"),n=31),dataList_name=x)
+			monthMiddle = []
+			for oneList in self.dataList:
+				summ = 0
+				for x in oneList:
+					summ+=x
+				summ/=len(oneList)
+				monthMiddle.append(round(summ))
+			self.dataList_month.append(monthMiddle)
+		self.saveJson(name=dateObj.strftime("%Y_%m__tot"),data=self.dataList_month)
+		#self.MonthData
+
+
+	def getNlast(self,name='*', n=10):
+		list_of_files = glob.glob('data/{}.json'.format(name)) # * means all if need specific format then *.csv
 		fromLastToFirst = []
 		if(n>len(list_of_files)):
 			n=len(list_of_files)
@@ -222,30 +241,62 @@ class HHStats:
 			latest_file = max(list_of_files, key=os.path.getctime)
 			fromLastToFirst.append(latest_file)
 			list_of_files.remove(latest_file)
-		return fromLastToFirst
-	def getMonthMiddle(self):
-		if(self.now.day==1):
-			pass
-		#self.now = datetime.datetime.now()
-	def getDataFromJson(self,listFiles,dataList_num=0):
+		return fromLastToFirst	
+	def getDataFromJson(self,listFiles,dataList_name='Russia'):
 		#['data\\2019_02_19.json', 'data\\2019_02_18.json'...]
 		self.dataList=[]
+		if(dataList_name=='Russia'):
+			dl_num=0
+		elif(dataList_name=='Samara'):
+			dl_num=1
+		else:
+			dl_num=0
 		for x in listFiles:
 			self.loadJson(x)
 			tempList=[]
-			for c in self.chooseDataList[dataList_num]:
+			for c in self.chooseDataList[dl_num]:
 				tempList.append(self.dataDictionary[self.namesList[c]])
 			self.dataList.append(tempList)
 		self.dataList.reverse()#originaly: 0-newest..n-oldest, after reverse: 0-oldest..n-newest
 		self.dataList=list(map(list, zip(*self.dataList)))#each sublist is принадлежит одной линии
-		
+
+
+	def saveJson(self,name=None,data=None):
+		if(name==None):
+			name=now.strftime("%Y_%m_%d")
+		if(data==None):
+			data=self.dataDictionary
+		fileName = 'data/{}.json'.format(name)#___%H_%M добавить в название для часов и минут
+		with open(fileName, 'w') as fp:
+			json.dump(data, fp)
+	def loadJson(self,fileName=None):
+		if(fileName==None):
+			fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))#___%H_%M добавить в название для часов и минут
+		with open(fileName, 'r') as fp:
+			self.dataDictionary = json.load(fp)
+
+
+	def TodayIsSaved(self):
+			fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))
+			try:
+				with open(fileName, 'w') as fp:
+					pass
+			except FileNotFoundError:
+				return False
+			else:
+				return True
+				#test = json.load(fp)
 
 
 
 print("loaded")
+
 if __name__ == '__main__':
 	print("also loaded as main")
-	Sample=HHStats(["Python","C#","Unity","Data science","JavaScript"])
-	#Sample.collectAndSaveData()
-	Sample.getMonthMiddle()
-	#Sample.drawPlot()
+	Sample=HHStats(["Python","C#","Unity","Data science","JavaScript"])#,test=True)
+	if(not Sample.TodayIsSaved()):
+		Sample.collectAndSaveData()
+	Sample.drawPlot()
+	if(False):
+		dateObj=datetime.datetime(2019,2,1)
+		Sample.PrepareMonthMiddle(dateObj)
