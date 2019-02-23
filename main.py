@@ -279,7 +279,7 @@ class HHStats:
 	def TodayIsSaved(self):
 			fileName = 'data/{}.json'.format(self.now.strftime("%Y_%m_%d"))
 			try:
-				with open(fileName, 'w') as fp:
+				with open(fileName, 'r') as fp:
 					pass
 			except FileNotFoundError:
 				return False
