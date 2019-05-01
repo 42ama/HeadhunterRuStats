@@ -1,24 +1,43 @@
 import itertools#для составления ссылок из списка списков
 import datetime
 
+#Во встроенных модулях также используеются внешние: bs4, requests, matplotlib, numpy
+#и стандартные: json, os, glob, collections(namedtuple)
+
 import data.starter as start#..........начальные преобразования списков
 import data.collector as collect#......сбор инфы с хх
 import data.jsonEz as jsonEz#..........сохраниение в формате жсон
 import data.plotter as plotter#........рисование и сохранение графиков
 import data.data_middle as data_middle#обработка собранной инфы за месяц
 
-
-TESTMODE=False
-
-
-now = datetime.datetime.now()
+now = datetime.date.today()
 strftime = now.strftime("%Y_%m_%d")
 
 if(now.month != 1):
 	lastMonth=datetime.datetime(now.year,now.month-1,now.day).strftime("%Y_%m_")
-	#MONTH - 1!!!
 else:
 	lastMonth=datetime.datetime(now.year-1,1,now.day).strftime("%Y_%m_")
+
+
+###################
+TESTMODE=False
+###################
+
+#Поле для ввода
+class InputField:
+	#в field_type хранится тэг - название, с помощью которого формируется стркоа
+	text = ''
+	def __init__(self, field_type):
+		self.field_type = field_type
+	def __call__(self, text):
+		self.text=text.lower()
+
+class URLQuteFiled(InputField):
+	def __call__(self, text):
+		InputField(self, self.text)
+
+InputText = InputField('text')
+InputText('Python')
 
 url='https://samara.hh.ru/search/vacancy?clusters=true&enable_snippets=true&text='
 
@@ -33,11 +52,33 @@ list_pairs_1 = [('Python', 'python'),
 				('Самара', 'area=78'),
 				(),
 				('',''),
-				('Нет опыта работы','experience=noExperience&from=cluster_experience&'),
+				('Нет опыта работы','experience=noExperience&from=cluster_experience'),
 				('1..3 года опыта', 'experience=between1And3&from=cluster_experience'),
 				()
 				]
 
+
+'''
+d_mainDict = {'text':['Python', 'C#', JavaScript],'area':['Россия','Самара','Санкт-Петербург','Минск'],'expirience':['Любой опыт работы', '1..3 года опыта работы', 'Без опыта работы']}
+for key in d_mainDict:
+	for x in d_mainDict[key]:
+		if len(d_mainDict[key][x])>0:
+			val=d_mainDict[key].pop()
+			if key = 'text':
+				pass
+			elif key = 'area':
+				pass
+			elif key = 'expirience':
+				pass
+			else:
+				raise Exception('Unknown key located')
+l_infoField = ['Python', 'C#', JavaScript]#text=
+l_areaField = ['Россия','Самара','Санкт-Петербург','Минск']#area=
+l_additionalField = ['Любой опыт работы', '1..3 года опыта работы', 'Без опыта работы']
+
+
+
+'''
 list_pairs_2 = [('Ежедневные (10 дней)','Week'),
 				('Ежедневные (месяц)','Month'),
 				('Ежемесячные','_Year'),
