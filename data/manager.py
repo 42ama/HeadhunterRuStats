@@ -2,18 +2,7 @@ import os
 import glob
 
 from . import jsonEz
-'''
-def list_filesSorted(name='*', n=10):
-	list_of_files = glob.glob('json/{}.json'.format(name)) # * means all if need specific format then *.csv
-	fromLastToFirst = []
-	if(n>len(list_of_files)):
-		n=len(list_of_files)
-	for x in range(n):
-		latest_file = max(list_of_files, key=os.path.getctime)
-		fromLastToFirst.append(latest_file)
-		list_of_files.remove(latest_file)
-	return fromLastToFirst
-'''
+
 def _getAllNLine(length,n):
 	list_out=[]
 	for c in range(length):

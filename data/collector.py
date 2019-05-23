@@ -13,30 +13,36 @@ def collect(list_url, list_jsonStr,
 	dict_out={}
 	for url in list_url:
 		pb.printProgressBar(c, len(list_url), prefix = 'Progress:', suffix = 'Complete', length = 50)
-		r=requests.get(url,headers=headers)
-		soup=BeautifulSoup(r.text, 'html.parser')
-		resultList = soup.find(params)
+		r=requests.get(url,headers=headers)#Подключаемся к сайту
+		soup=BeautifulSoup(r.text, 'html.parser')#Получаем объект для парсина
+		resultList = soup.find(params)#Собираем объекты по вручную определенным параметрам - даёт доступ к числу вакансий который hh.ru выводит
 		dataToProcess = str(resultList.next)
 		if(not dataToProcess.startswith(startswith)):
+			#Получаем строку вида:"Найдено 14 828 вакансий" и пробираемся через неё цепляя цифры
 			newStr = '';
 			flag_nowNums=False
 			for x in range(len(dataToProcess)):
 				if(not flag_nowNums and not dataToProcess[x].isdigit()):
+					#ничего не делаем, пока не найдем первое число
 					continue
 				elif(not flag_nowNums):
+					#нашли первое число - ставим отметку
 					flag_nowNums=True
 				if(dataToProcess[x].isdigit()):
+					#если цифра - забираем
 					newStr+=dataToProcess[x]
 				elif(dataToProcess[x].isspace()):
+					#если пробел и дальше цифра - продолжаем, иначе говорим что сбор окончен
 					if(dataToProcess[x+1].isdigit()):
 						continue
 					else:
 						break
 				else:
+					#если не пробел и не цифра - заканчиваем с ссылкой
 					break
 			dict_out[list_jsonStr[c]]=int(newStr)
-			#dict_out[list_url[c]]=int(newStr)
 		else:
+			#По данному запорсу ничего не найдено
 			dict_out[list_jsonStr[c]]=None
 		c+=1;	
 	return dict_out

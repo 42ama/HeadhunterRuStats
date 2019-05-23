@@ -1,7 +1,7 @@
 from . import jsonEz
 from . import manager
 
-
+#неклассная версия, прежде чем использовать в работу - переписать
 def calculate_last_month_middle(jsonStr, lastMonth):
 	list_monthData = []
 	for x in (0, 6):

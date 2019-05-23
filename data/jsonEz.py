@@ -1,6 +1,5 @@
 import json #Для хранения файлов
-#name=now.strftime("%Y_%m_%d")
-#data=self.dataDictionary
+
 
 def save(name,data):
 	fileName = 'json/{}.json'.format(name)#___%H_%M добавить в название для часов и минут
