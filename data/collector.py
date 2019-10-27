@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup 
 import requests
 
-import progressbar as pb#красивое отображение процесса во время сбора инфы 
+from . import progressbar as pb#красивое отображение процесса во время сбора инфы 
 
 
 def collect(list_url, list_jsonStr, 
@@ -15,8 +15,8 @@ def collect(list_url, list_jsonStr,
 		pb.printProgressBar(c, len(list_url), prefix = 'Progress:', suffix = 'Complete', length = 50)
 		r=requests.get(url,headers=headers)#Подключаемся к сайту
 		soup=BeautifulSoup(r.text, 'html.parser')#Получаем объект для парсина
-		resultList = soup.find(params)#Собираем объекты по вручную определенным параметрам - даёт доступ к числу вакансий который hh.ru выводит
-		dataToProcess = str(resultList.next)
+		resultList = soup.find_all(params)#Собираем объекты по вручную определенным параметрам - даёт доступ к числу вакансий который hh.ru выводит
+		dataToProcess = str(resultList[1].next)
 		if(not dataToProcess.startswith(startswith)):
 			#Получаем строку вида:"Найдено 14 828 вакансий" и пробираемся через неё цепляя цифры
 			newStr = '';
